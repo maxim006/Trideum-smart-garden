@@ -1,1 +1,4 @@
 adafruit-circuitpython-dht
+flask
+python-dotenv
+flask_cors
