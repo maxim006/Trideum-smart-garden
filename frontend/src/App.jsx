@@ -7,19 +7,18 @@ function App() {
   const [fizzbuzzOutput, setFizzbuzzOutput] = useState("");
 
   const handleSubmit = () => {
-    axios
-      .post("http://localhost:5000/fizzbuzz", { fizzbuzz: fizzbuzz })
-      .then((response) => {
-        setFizzbuzzOutput(response.data);
-      })
-      .catch((error) => {
-        console.error(error);
-      });
+    // axios
+    //   .post("http://localhost:5000/fizzbuzz", { fizzbuzz: fizzbuzz })
+    //   .then((response) => {
+    //     setFizzbuzzOutput(response.data);
+    //   })
+    //   .catch((error) => {
+    //     console.error(error);
+    //   });
+    axios.get("http://localhost:5000/fizzbuzz").then((res) => {
+      console.log(res.data);
+    });
   };
-
-  useEffect(() => {
-    console.log(fizzbuzzOutput);
-  }, [fizzbuzzOutput]);
 
   return (
     <div className="App">
