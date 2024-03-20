@@ -13,3 +13,7 @@ while True:
 	except RuntimeError as error:
 		print(error.args[0])
 	time.sleep(2.0)
+
+x = temperature_c
+y = temperature_f
+z = humidity 

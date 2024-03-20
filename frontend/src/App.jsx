@@ -16,7 +16,7 @@ function App() {
     //     console.error(error);
     //   });
     axios.get("http://localhost:5000/fizzbuzz").then((res) => {
-      console.log(res.data);
+      setFizzbuzzOutput(res.data);
     });
   };
 
@@ -32,7 +32,7 @@ function App() {
           }}
         ></input>
         <button onClick={handleSubmit}>Submit</button>
-        <div>{fizzbuzzOutput.FizzBuzz}</div>
+        <div>{fizzbuzzOutput.temperature}</div>
       </div>
     </div>
   );

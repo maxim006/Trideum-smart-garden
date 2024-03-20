@@ -1,0 +1,7 @@
+OPEN BACKEND
+Trideum-smart-garden> .\env\Scripts\activate
+cd backend 
+flask run
+
+OPEN FRONTEND
+npm run dev
