@@ -9,7 +9,11 @@ while True:
 		temperature_c = dht_device.temperature
 		temperature_f = temperature_c * (9/5) + 32
 		humidity = dht_device.humidity
-		print("Temp:{:.1f} C / {:.1f} C   Humidity: {}%".format(temperature_c, temperature_f, humidity))
+		print("Temp:{:.1f} C / {:.1f} F   Humidity: {}%".format(temperature_c, temperature_f, humidity))
 	except RuntimeError as error:
 		print(error.args[0])
-	time.sleep(2.0)
+	time.sleep(1)
+
+x = temperature_c
+y = temperature_f
+z = humidity 
