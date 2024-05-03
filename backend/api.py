@@ -15,6 +15,7 @@ CORS(app)
 dht_device = adafruit_dht.DHT22(board.D4)
 temperature_c = 0
 temperature_f = 0
+temperature_k = 0
 humidity = 0
 val = 0
 lidclosed = True
@@ -23,11 +24,13 @@ lidclosed = True
 def update_temperature():
     global temperature_c
     global temperature_f
+    global temperature_k
     global humidity
     while True:
         try:
             temperature_c = dht_device.temperature
             temperature_f = temperature_c * (9/5) + 32
+            temperature_k = temperature_c + 273.15
             humidity = dht_device.humidity
         except RuntimeError as error:
             print(error.args[0])
@@ -36,6 +39,29 @@ def update_temperature():
 spi = spidev.SpiDev()
 spi.open(0,0)
 spi.max_speed_hz = 5000 
+
+@app.route('/wateron', methods=["GET"])
+def wateron():
+	channel = 22
+	GPIO.setmode(GPIO.BCM)
+	GPIO.setup(channel, GPIO.OUT)
+	try:
+		GPIO.output(channel, GPIO.HIGH)
+		return("watering")
+	except RuntimeError as error:
+		print(error.args[0])
+
+@app.route('/wateroff', methods=["GET"])
+def wateroff():
+	channel = 22
+	GPIO.setmode(GPIO.BCM)
+	GPIO.setup(channel, GPIO.OUT)
+	try:
+		GPIO.output(channel, GPIO.LOW)
+		return("stoped watering")
+	except RuntimeError as error:
+		print(error.args[0])
+
 
 def readChannel(channel):
 	val = spi.xfer2([1,(8+channel)<<4,0])
@@ -78,6 +104,16 @@ def tempF():
 	except RuntimeError as error:
 	    print(error.args[0])
 		
+@app.route('/dht22/tempK', methods=["GET"])
+def tempK():
+	try:
+		temperature_c = dht_device.temperature
+		float = temperature_c + 273.15
+		format_tempk = "{:.2f}".format(float)
+		return({"temp": format_tempk})
+	except RuntimeError as error:
+	    print(error.args[0])
+		
 @app.route('/dht22/humidity', methods=["GET"])
 def humidity():
 	try:
@@ -100,23 +136,8 @@ def Moisture():
 	except RuntimeError as error:
 		print(error.args[0])
 	
-@app.route('/start/watering', methods=["GET"])
-def watering():
-	GPIO.setmode(GPIO.BCM)
-	GPIO.setup(17, GPIO.OUT)
-	val = readChannel(0)
-	moisture = 100 * (1 - (val - 270) / (700-270))
-	if moisture < 55:
-		try:
-			GPIO.output(17, GPIO.HIGH)
-			time.sleep(2.0)
-			GPIO.output(17, GPIO.LOW)
-			time.sleep(5)
-			return("watered")
-		except RuntimeError as error:
-			print(error.args[0])
-	elif moisture > 55:
-		return("wet")
+
+
 
 @app.route('/start/fan', methods=["GET"])
 async def startfan():
@@ -201,9 +222,8 @@ def closelid():
     import time
     global lidclosed
     step_sleep = 0.002
-    step_count = 2048  # 5.625*(1/64) per step, 4096 steps is 360°
-    direction = False  # True for clockwise, False for counter-clockwise
-    # defining stepper motor sequence (found in documentation http://www.4tronix.co.uk/arduino/Stepper-Motors.php)
+    step_count = 30720  # 5.625*(1/64) per step, 4096 steps is 360°
+    direction = False  
     step_sequence = [[1, 0, 0, 1],
                      [1, 0, 0, 0],
                      [1, 1, 0, 0],
@@ -250,19 +270,14 @@ def closelid():
     else:
         return "Lid is already closed"
 
-		
-
-
-
 @app.route('/openlid', methods=["GET"])
 def openlid():
     import RPi.GPIO as GPIO
     import time
     global lidclosed
     step_sleep = 0.002
-    step_count = 2048  # 5.625*(1/64) per step, 4096 steps is 360°
+    step_count = 30720  # 5.625*(1/64) per step, 4096 steps is 360°
     direction = True  # True for clockwise, False for counter-clockwise
-    # defining stepper motor sequence (found in documentation http://www.4tronix.co.uk/arduino/Stepper-Motors.php)
     step_sequence = [[1, 0, 0, 1],
                      [1, 0, 0, 0],
                      [1, 1, 0, 0],
@@ -294,10 +309,6 @@ def openlid():
                     motor_step_counter = (motor_step_counter - 1) % 8
                 elif direction == False:
                     motor_step_counter = (motor_step_counter + 1) % 8
-                # else: # defensive programming
-                # 	return( "uh oh... direction should *always* be either True or False" )
-                # 	cleanup()
-                # 	exit( 1 )s
                 time.sleep(step_sleep)
 
             GPIO.output(in1, GPIO.LOW)
@@ -305,7 +316,7 @@ def openlid():
             GPIO.output(in3, GPIO.LOW)
             GPIO.output(in4, GPIO.LOW)
             lidclosed = False
-            return "Lid opened successfully"  # Return statement added
+            return "Lid opened successfully"  
         except KeyboardInterrupt:
             cleanup()
             exit(1)
@@ -318,5 +329,39 @@ if __name__ == '__main__':
 
 @app.route('/clock')
 def concat_time_shared_value():
-	current_time = datetime.now().strftime('%Y-%m-%d 	%H:%M:%S')
+	current_time = datetime.now().strftime('%Y-%m-%d  %H:%M:%S')
 	return jsonify({'time': f'{current_time}'})
+
+@app.route('/auto/watering', methods=["GET"])
+def watering():
+    GPIO.setmode(GPIO.BCM)
+    channel = 22
+    GPIO.setup(channel, GPIO.OUT)
+    val = readChannel(0)
+    moisture = 100 * (1 - (val - 270) / (700-270))
+    if moisture < 15:
+        try:
+            GPIO.output(channel, GPIO.HIGH)
+            time.sleep(4.0)
+            GPIO.output(channel, GPIO.LOW)
+            time.sleep(1)
+            return("watered")
+        except RuntimeError as error:
+            return(error.args[0])
+    elif moisture > 15:
+        return("wet")
+
+@app.route('/auto/fan', methods=["GET"])
+def fan():
+    temperature_c = dht_device.temperature
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(18, GPIO.OUT)
+    if (temperature_c * (9/5) + 32) > 75:
+        try:
+            GPIO.output(18, GPIO.HIGH)
+            return("cooled")
+        except RuntimeError as error:
+            return(error.args[0])
+    elif (temperature_c * (9/5) + 32) < 75:
+        GPIO.output(18, GPIO.LOW)
+        return("not hot enough")
