@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import "../App.css";
 import Box from "@mui/material/Box";
+import Link from "@mui/material/Link";
 import Drawer from "@mui/material/Drawer";
 import Button from "@mui/material/Button";
 import List from "@mui/material/List";
@@ -155,7 +156,13 @@ function HeatCool() {
         </div>
         <h1>
           <GrassIcon fontSize="large" />
-          Mars Automated Plant System
+          <Link
+            className="Link"
+            underline="hover"
+            href="https://github.com/maxim006/Trideum-smart-garden"
+          >
+            Mars Automated Plant System
+          </Link>
           <GrassIcon fontSize="large" />
           Heating & Cooling
           <GrassIcon fontSize="large" />
